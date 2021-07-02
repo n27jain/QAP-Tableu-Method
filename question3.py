@@ -28,17 +28,17 @@ def cost(path,flow,distance):
             cost += int(distance[i][j])*int(flow[current][compare])
     return cost
 
-def findNeighbors(current, tabu,threshold=None):
+def findNeighbors(current, tabu,threshold = None):
     # neighbors [array of neighbor]
     # neighbor 
     neighbors = []
     k = 0
-    for i in range(len(current)):
-        for j in range(i+1,len(current)):
+    for i in range(len(tabu)):
+        for j in range(len(tabu[i])):
             if tabu[i][j] == 0:
                 neighbor = copy.deepcopy(current)
-                neighbor[i] = current[j]
-                neighbor[j] = current[i]
+                neighbor[i] = current[j+i+1]
+                neighbor[j+i+1] = current[i]
                 neighbor = [neighbor,(i,j)] # the second value tells us which indexes were swapped
                 neighbors.append(neighbor)
                 k += 1
@@ -56,7 +56,62 @@ def printNe(neigh):
     for row in neigh:
         print(row, " /n")
 
-def solve(map,flow,distance,allowedIterations, threshold = None,tenure=3): 
+def solve( map, flow, distance, allowedIterations, threshold = None, tenure = 3): 
+    # map is the current solution
+    # threshold decides how many neighbors we check
+    # allowedIterations is used for termination
+    # this def takes the map, 
+    # finds 190 neighbors, checking the tabu list to ensure we do not repeat previous sol
+    frequency = 5 # lets update the dynamic tenure every 5 iterations
+    f = 0
+    tabu_dynamic = random.randint(1, 100)
+    tabu_start = tenure
+    current = map
+    lowestCost = cost(current,flow,distance)
+    # print("Initial Solution : ", current, "\n", "Cost: ",lowestCost)
+    tabu = []
+    for i in range(len(map)-1):
+        row = []
+        for j in range(i+1,len(map)):
+            row.append(0)
+        tabu.append(row)
+    for i in range(allowedIterations):
+        decendent = None
+        # decrement the tableau
+        decreaseTabu(tabu)
+        # find neighbors
+        neighbors = findNeighbors(current,tabu,threshold)
+  
+        # for each neighbor calculate the cost
+        for neighbor in neighbors:
+            cur_cost = cost(neighbor[0],flow,distance)
+            if cur_cost == 2570: 
+                print("Iterations: ", i)
+                return neighbor[0], cur_cost # if the cost is less than or equal too 2570  (the specified goal) return this solution
+            if cur_cost <= lowestCost :   # save least neighbor as the current solution
+                current = neighbor[0]
+                lowestCost = cur_cost
+                decendent = neighbor[1] # coordinates
+        # if no neighbor improves the solution, than return last solution
+        if decendent == None:
+            print("Iterations: ", i)
+            return current, lowestCost
+        # update the swap in the tableu
+        if tabu_start == "Dynamic":
+            if f == frequency:
+                tabu_dynamic = random.randint(1, 20)
+                f = 0
+            tabu[decendent[0]][decendent[1]] = tabu_dynamic
+            f += 1
+        else: 
+            tabu[decendent[0]][decendent[1]] = tabu_start 
+    
+    # after all of the interations we still have not found the most optimal solution. 
+    # Lets just return the solution that we found anyways
+    print("Iterations: ", allowedIterations )
+    return current,lowestCost
+
+def solveFrequency( map, flow, distance, allowedIterations, threshold = None, tenure = 3): 
     # map is the current solution
     # threshold decides how many neighbors we check
     # allowedIterations is used for termination
@@ -72,7 +127,7 @@ def solve(map,flow,distance,allowedIterations, threshold = None,tenure=3):
     tabu = []
     for i in range(len(map)):
         row = []
-        for j in range(len(map)):
+        for j in range(i+1,len(map)):
             row.append(0)
         tabu.append(row)
 
@@ -234,3 +289,7 @@ def Experiment4():
 def Experiment5():
     print("Test #5: Frequency Tabu\n")
 
+# Experiment1()
+# Experiment2()
+# Experiment3()
+Experiment2()
