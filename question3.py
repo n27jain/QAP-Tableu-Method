@@ -68,7 +68,7 @@ def solve( map, flow, distance, allowedIterations, threshold = None, tenure = 3)
     tabu_start = tenure
     current = map
     lowestCost = cost(current,flow,distance)
-    # print("Initial Solution : ", current, "\n", "Cost: ",lowestCost)
+    print("Initial Solution : ", current, "\n", "Cost: ",lowestCost)
     tabu = []
     for i in range(len(map)-1):
         row = []
@@ -111,58 +111,78 @@ def solve( map, flow, distance, allowedIterations, threshold = None, tenure = 3)
     print("Iterations: ", allowedIterations )
     return current,lowestCost
 
+def findNeighborsFreq(current, tabu,threshold = None):
+    # neighbors [array of neighbor]
+    # neighbor 
+    neighbors = []
+    k = 0
+    for i in range(len(tabu)):
+        for j in range(i+1,len(tabu[i])):
+            if tabu[i][j] == 0:
+                neighbor = copy.deepcopy(current)
+                neighbor[i] = current[j]
+                neighbor[j] = current[i]
+                neighbor = [neighbor,(i,j)] # the second value tells us which indexes were swapped
+                neighbors.append(neighbor)
+                k += 1
+            if threshold and k == threshold: 
+                return neighbors 
+    return neighbors
+
 def solveFrequency( map, flow, distance, allowedIterations, threshold = None, tenure = 3): 
     # map is the current solution
     # threshold decides how many neighbors we check
     # allowedIterations is used for termination
     # this def takes the map, 
     # finds 190 neighbors, checking the tabu list to ensure we do not repeat previous sol
-    frequency = 5 # lets update the dynamic tenure every 5 iterations
     f = 0
-    tabu_dynamic = random.randint(1, 100)
     tabu_start = tenure
     current = map
     lowestCost = cost(current,flow,distance)
-    # print("Initial Solution : ", current, "\n", "Cost: ",lowestCost)
+    print("Initial Solution : ", current, "\n", "Cost: ",lowestCost)
+    # make a NxN array. First half used for frequency and second half used for tabu
+    # tabu[i][j] = tabu, then tabu[j][i] = frequency 
+
     tabu = []
     for i in range(len(map)):
         row = []
-        for j in range(i+1,len(map)):
+        for j in range(len(map)):
             row.append(0)
         tabu.append(row)
 
     for i in range(allowedIterations):
         decendent = None
+        leastF = 1000000 # arbitrary large number
         # decrement the tableau
         decreaseTabu(tabu)
         # find neighbors
-        neighbors = findNeighbors(current,tabu,threshold)
-  
+        neighbors = findNeighborsFreq(current,tabu,threshold)
+        
         # for each neighbor calculate the cost
         for neighbor in neighbors:
             cur_cost = cost(neighbor[0],flow,distance)
+            freq = tabu[neighbor[1][1]][neighbor[1][0]] 
             if cur_cost == 2570: 
                 print("Iterations: ", i)
                 return neighbor[0], cur_cost # if the cost is less than or equal too 2570  (the specified goal) return this solution
-            if cur_cost <= lowestCost :   # save least neighbor as the current solution
-                current = neighbor[0]
-                lowestCost = cur_cost
-                decendent = neighbor[1] # coordinates
+            if cur_cost < lowestCost :   # save least neighbor as the current solution
+                    current = neighbor[0]
+                    decendent = neighbor[1] # coordinates
+                    leastF = freq
+                    lowestCost = cur_cost
+            elif(cur_cost == lowestCost and leastF > freq ): # give prefernce to similar cost solution with less frequency
+                    current = neighbor[0]
+                    decendent = neighbor[1] # coordinates
+                    leastF = freq
+                    lowestCost = cur_cost
+
         # if no neighbor improves the solution, than return last solution
         if decendent == None:
             print("Iterations: ", i)
             return current, lowestCost
         # update the swap in the tableu
-        if tabu_start == "Dynamic":
-            if f == frequency:
-                tabu_dynamic = random.randint(1, 20)
-                f = 0
-            tabu[decendent[0]][decendent[1]] = tabu_dynamic
-            tabu[decendent[1]][decendent[0]] = tabu_dynamic
-            f += 1
-        else: 
-            tabu[decendent[0]][decendent[1]] = tabu_start 
-            tabu[decendent[1]][decendent[0]] = tabu_start 
+        tabu[decendent[0]][decendent[1]] = tabu_start 
+        tabu[decendent[1]][decendent[0]] = tabu[decendent[1]][decendent[0]] + 1
     
     # after all of the interations we still have not found the most optimal solution. 
     # Lets just return the solution that we found anyways
@@ -288,8 +308,20 @@ def Experiment4():
 
 def Experiment5():
     print("Test #5: Frequency Tabu\n")
+    sol = ['12', '4', '10', '5', '11', '20', '9', '6', '15', '19', '3', '16', '17', '2', '18', '7', '8', '14', '13', '1'] 
+    print("Without Frequency:")
+    current,lowestCost = solve(sol,flow,distance,20)
+    print("Solution : ", current, "\n", "Cost: ", lowestCost, "\n")
 
+    print("With Frequency:")
+    current,lowestCost = solveFrequency(sol,flow,distance,20)
+    print("Solution : ", current, "\n", "Cost: ", lowestCost)
+
+
+#TODO: Select an experiment and uncomment it !
 # Experiment1()
 # Experiment2()
 # Experiment3()
-Experiment2()
+# Experiment4()
+Experiment5()
+
